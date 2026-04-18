@@ -1,0 +1,14 @@
+[project]
+name = "llms-and-tictactoe"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.14"
+dependencies = [
+    "gymnasium>=1.2.3",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.4",
+    "pandas>=3.0.2",
+    "seaborn>=0.13.2",
+    "torch>=2.11.0",
+    "transformers>=5.5.4",
+]
