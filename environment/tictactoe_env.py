@@ -5,6 +5,15 @@ from dataclasses import dataclass
 import gymnasium as gym
 from gymnasium import spaces
 
+from environment.board import (
+    Board,
+    EMPTY,
+    apply_move,
+    is_full,
+    valid_actions as board_valid_actions,
+    winner,
+)
+
 
 @dataclass(frozen=True)
 class BoardSpec:
@@ -69,7 +78,7 @@ class TicTacToeEnv(gym.Env):
         self.action_space = spaces.Discrete(9)
         self.observation_space = spaces.Text(max_length=256, charset=self.board_spec.charset)
 
-        self._board: list[str] = [self.board_spec.empty] * 9
+        self._board: Board = EMPTY
         self._current_player: int = 0
         self._done: bool = False
 
@@ -77,10 +86,10 @@ class TicTacToeEnv(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
-        self._board = [self.board_spec.empty] * 9
+        self._board = EMPTY
         self._current_player = 0
         self._done = False
-        return self._render_text(), self._info(winner=None, invalid=False)
+        return self._render_text(), self._info(winner_piece=0, invalid=False)
 
     def step(self, action: int):
         if self._done:
@@ -89,26 +98,24 @@ class TicTacToeEnv(gym.Env):
             raise ValueError(f"action {action!r} is not in the action space Discrete(9)")
 
         mover = self._current_player
-        empty = self.board_spec.empty
 
-        if self._board[action] != empty:
+        if self._board[action] != 0:
             self._done = True
             return (
                 self._render_text(),
                 self.invalid_move_reward,
                 True,
                 False,
-                self._info(winner=None, invalid=True, mover=mover),
+                self._info(winner_piece=0, invalid=True, mover=mover),
             )
 
-        self._board[action] = self.board_spec.pieces[mover]
-        winner = self._check_winner()
-        board_full = empty not in self._board
+        self._board = apply_move(self._board, action, mover)
+        winner_piece = winner(self._board)
 
-        if winner is not None:
+        if winner_piece:
             reward = self.win_reward
             terminated = True
-        elif board_full:
+        elif is_full(self._board):
             reward = self.draw_reward
             terminated = True
         else:
@@ -122,7 +129,7 @@ class TicTacToeEnv(gym.Env):
             reward,
             terminated,
             False,
-            self._info(winner=winner, invalid=False, mover=mover),
+            self._info(winner_piece=winner_piece, invalid=False, mover=mover),
         )
 
     def render(self):
@@ -134,41 +141,32 @@ class TicTacToeEnv(gym.Env):
 
     # ------------------------------------------------------------------ helpers
 
-    def valid_actions(self) -> list[int]:
-        empty = self.board_spec.empty
-        return [i for i, c in enumerate(self._board) if c == empty]
+    @property
+    def board(self) -> Board:
+        return self._board
 
-    def _info(self, *, winner, invalid, mover=None):
+    def valid_actions(self) -> list[int]:
+        return board_valid_actions(self._board)
+
+    def _info(self, *, winner_piece: int, invalid: bool, mover: int | None = None):
+        spec = self.board_spec
         info = {
             "current_player": self._current_player,
             "valid_actions": self.valid_actions(),
             "invalid_move": invalid,
-            "winner": winner,
+            "winner": spec.pieces[winner_piece - 1] if winner_piece else None,
         }
         if mover is not None:
             info["mover"] = mover
         return info
 
-    def _check_winner(self) -> str | None:
-        lines = (
-            (0, 1, 2), (3, 4, 5), (6, 7, 8),
-            (0, 3, 6), (1, 4, 7), (2, 5, 8),
-            (0, 4, 8), (2, 4, 6),
-        )
-        b = self._board
-        empty = self.board_spec.empty
-        for a, c, d in lines:
-            if b[a] != empty and b[a] == b[c] == b[d]:
-                return b[a]
-        return None
-
     def _render_text(self) -> str:
         spec = self.board_spec
+        chars = [spec.empty if v == 0 else spec.pieces[v - 1] for v in self._board]
 
         def row(r: int) -> str:
-            cells = [self._board[r * 3 + c] for c in range(3)]
             sep = f" {spec.v_boundary} "
-            return f" {cells[0]}{sep}{cells[1]}{sep}{cells[2]} "
+            return f" {chars[r * 3]}{sep}{chars[r * 3 + 1]}{sep}{chars[r * 3 + 2]} "
 
         rows = [row(r) for r in range(3)]
         divider = spec.h_boundary * len(rows[0])

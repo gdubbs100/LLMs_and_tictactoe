@@ -1,0 +1,17 @@
+name: example
+games_per_pair: 30
+k_factor: 32
+initial_rating: 1000
+seed: 42
+
+agents:
+  - name: alphabeta
+    type: alphabeta
+  - name: random_a
+    type: random
+    kwargs:
+      seed: 1
+  - name: random_b
+    type: random
+    kwargs:
+      seed: 2
