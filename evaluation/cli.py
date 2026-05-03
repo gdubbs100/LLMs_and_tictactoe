@@ -4,7 +4,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-from evaluation.config import load_config
+from evaluation.config import load_config, load_match_config
 from evaluation.metrics import score_results
 from evaluation.plots import (
     plot_elo_history,
@@ -12,7 +12,6 @@ from evaluation.plots import (
     plot_outcome_rates,
     plot_pairwise_winrate,
 )
-from evaluation.registry import make_agent_factory
 from evaluation.runner import run_matches, save_results
 from evaluation.tournament import Tournament, save_tournament
 
@@ -20,14 +19,25 @@ from evaluation.tournament import Tournament, save_tournament
 def cmd_match(args: argparse.Namespace) -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    fac_a = make_agent_factory(args.p1)
-    fac_b = make_agent_factory(args.p2)
-    results = run_matches((args.p1, fac_a), (args.p2, fac_b), n_games=args.n)
+    cfg = load_match_config(args.config)
+    fac_a, fac_b = cfg.agent_factories()
+    results = run_matches((cfg.p1.name, fac_a), (cfg.p2.name, fac_b), n_games=cfg.n_games)
     save_results(results, out / "games.jsonl")
     stats = score_results(results)
     plot_outcome_rates(stats, out / "outcome_rates.png")
     plot_optimality(stats, out / "optimality.png")
     print(f"Wrote {len(results)} games + plots to {out}")
+
+
+def cmd_dashboard(args: argparse.Namespace) -> None:
+    import subprocess
+    import sys
+
+    app_path = Path(__file__).parent.parent / "dashboard" / "app.py"
+    cmd = [sys.executable, "-m", "streamlit", "run", str(app_path)]
+    if args.results:
+        cmd += ["--", "--results", args.results]
+    subprocess.run(cmd)
 
 
 def cmd_tournament(args: argparse.Namespace) -> None:
@@ -60,10 +70,8 @@ def main() -> None:
     p = argparse.ArgumentParser(prog="evaluation")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    m = sub.add_parser("match", help="run N games between two agents")
-    m.add_argument("--p1", required=True, help="agent type for player 1")
-    m.add_argument("--p2", required=True, help="agent type for player 2")
-    m.add_argument("-n", type=int, default=100)
+    m = sub.add_parser("match", help="run games between two agents")
+    m.add_argument("--config", required=True, help="YAML config path")
     m.add_argument("--out", required=True)
     m.set_defaults(func=cmd_match)
 
@@ -71,6 +79,10 @@ def main() -> None:
     t.add_argument("--config", required=True, help="YAML config path")
     t.add_argument("--out", required=True)
     t.set_defaults(func=cmd_tournament)
+
+    d = sub.add_parser("dashboard", help="launch the replay dashboard")
+    d.add_argument("--results", default="results/", help="path to results dir or .jsonl file")
+    d.set_defaults(func=cmd_dashboard)
 
     args = p.parse_args()
     args.func(args)

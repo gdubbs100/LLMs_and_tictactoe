@@ -16,6 +16,18 @@ class AgentConfig:
 
 
 @dataclass
+class MatchConfig:
+    p1: AgentConfig
+    p2: AgentConfig
+    n_games: int = 1
+
+    def agent_factories(self) -> tuple[AgentFactory, AgentFactory]:
+        fac1 = make_agent_factory(self.p1.type, **self.p1.kwargs)
+        fac2 = make_agent_factory(self.p2.type, **self.p2.kwargs)
+        return fac1, fac2
+
+
+@dataclass
 class TournamentConfig:
     name: str
     agents: list[AgentConfig]
@@ -29,6 +41,15 @@ class TournamentConfig:
         for a in self.agents:
             out[a.name] = make_agent_factory(a.type, **a.kwargs)
         return out
+
+
+def load_match_config(path: str | Path) -> MatchConfig:
+    raw = yaml.safe_load(Path(path).read_text())
+    return MatchConfig(
+        p1=AgentConfig(**raw["p1"]),
+        p2=AgentConfig(**raw["p2"]),
+        n_games=raw.get("n_games", 1),
+    )
 
 
 def load_config(path: str | Path) -> TournamentConfig:

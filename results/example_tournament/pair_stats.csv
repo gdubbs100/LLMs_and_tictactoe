@@ -1,0 +1,13 @@
+agent_name,games,wins,draws,losses,invalid_moves,optimal_actions,total_actions,win_rate,draw_rate,loss_rate,invalid_rate,optimality_rate,opponent
+alphabeta,5,5,0,0,0,15,15,1.0,0.0,0.0,0.0,1.0,random_a
+random_a,5,0,0,5,0,7,12,0.0,0.0,1.0,0.0,0.5833333333333334,alphabeta
+alphabeta,5,5,0,0,0,15,15,1.0,0.0,0.0,0.0,1.0,random_b
+random_b,5,0,0,5,0,7,12,0.0,0.0,1.0,0.0,0.5833333333333334,alphabeta
+alphabeta,5,5,0,0,0,8,8,1.0,0.0,0.0,0.0,1.0,qwen3-0.6b
+qwen3-0.6b,5,0,0,5,5,5,10,0.0,0.0,1.0,1.0,0.5,alphabeta
+random_a,5,0,0,5,0,9,16,0.0,0.0,1.0,0.0,0.5625,random_b
+random_b,5,5,0,0,0,12,18,1.0,0.0,0.0,0.0,0.6666666666666666,random_a
+random_a,5,5,0,0,0,6,8,1.0,0.0,0.0,0.0,0.75,qwen3-0.6b
+qwen3-0.6b,5,0,0,5,5,2,10,0.0,0.0,1.0,1.0,0.2,random_a
+random_b,5,5,0,0,0,3,5,1.0,0.0,0.0,0.0,0.6,qwen3-0.6b
+qwen3-0.6b,5,0,0,5,5,2,7,0.0,0.0,1.0,1.0,0.2857142857142857,random_b

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
@@ -10,7 +9,7 @@ import pandas as pd
 from agents.play import ResultSpec
 from evaluation.metrics import MatchStats, score_results
 from evaluation.registry import AgentFactory
-from evaluation.runner import run_matches
+from evaluation.runner import run_matches, save_results
 
 
 @dataclass
@@ -94,17 +93,7 @@ def save_tournament(result: TournamentResult, out_dir: str | Path) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    with (out_dir / "games.jsonl").open("w") as f:
-        for r in result.games:
-            f.write(json.dumps({
-                "agent_names": list(r.agent_names),
-                "actions": r.actions,
-                "boards": [list(b) for b in r.boards],
-                "player": r.player,
-                "winner": r.winner,
-                "invalid": r.invalid,
-                "outcome": r.outcome,
-            }) + "\n")
+    save_results(result.games, out_dir / "games.jsonl")
 
     pd.DataFrame(
         [{"name": n, "rating": r} for n, r in result.final_ratings.items()]

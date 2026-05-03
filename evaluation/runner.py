@@ -48,6 +48,7 @@ def save_results(results: Iterable[ResultSpec], path: str | Path) -> None:
                 "invalid": r.invalid,
                 "final_reward": r.final_reward,
                 "outcome": r.outcome,
+                "llm_interactions": {str(k): v for k, v in (r.llm_interactions or {}).items()},
             }) + "\n")
 
 

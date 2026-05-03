@@ -1,0 +1,26 @@
+p1:
+  name: qwen3-0.6b
+  type: hf
+  kwargs:
+    model_name: Qwen/Qwen3-0.6B
+    enable_thinking: true
+    max_new_tokens: 4096
+    base_prompt: |
+      You are playing Tic-Tac-Toe.
+      Actions are integers in [0, 8] indexing cells in row-major order:
+
+       0 | 1 | 2
+      -----------
+       3 | 4 | 5
+      -----------
+       6 | 7 | 8
+
+      View the board state and select the best available action to win.
+      Only select `valid_actions`. Never select an integer not in `valid_actions`.
+      Respond with a single integer only. No explanation.
+
+p2:
+  name: alphabeta
+  type: alphabeta
+
+n_games: 5

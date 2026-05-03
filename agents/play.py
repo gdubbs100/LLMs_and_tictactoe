@@ -5,7 +5,7 @@ from typing import List, Tuple
 
 from environment import TicTacToeEnv
 from environment.board import Board
-from agents.base import Agent
+from agents.base import Agent, LLMAgent
 
 
 @dataclass
@@ -19,6 +19,7 @@ class ResultSpec:
     invalid: bool | None = None
     final_reward: float | None = None
     outcome: str | None = None
+    llm_interactions: dict = field(default_factory=dict)
 
 
 def play_game(
@@ -32,6 +33,7 @@ def play_game(
     observation_log: list[str] = []
     board_log: list[Board] = []
     player_log: list[int] = []
+    llm_log: dict[int, list[dict]] = {0: [], 1: []}
 
     obs, info = env.reset()
     observation_log.append(obs)
@@ -42,12 +44,24 @@ def play_game(
     while True:
         player = info["current_player"]
         action = agents[player].act(obs, info["valid_actions"], player)
-        obs, reward, terminated, _, info = env.step(action)
+
+        if not (0 <= action <= 8):
+            info = {"invalid_move": True, "mover": player, "winner": None, "current_player": player, "valid_actions": []}
+            reward = env.invalid_move_reward
+            terminated = True
+        else:
+            obs, reward, terminated, _, info = env.step(action)
 
         action_log.append(action)
         observation_log.append(obs)
         board_log.append(env.board)
         player_log.append(player)
+
+        if isinstance(agents[player], LLMAgent) and agents[player].log_interactions:
+            llm_log[player].append({
+                "attempts": list(agents[player].last_interaction),
+                "move_valid": not info.get("invalid_move", False),
+            })
 
         if verbose:
             print(f"\n{agents[info['mover']].name} played {action}")
@@ -81,4 +95,5 @@ def play_game(
         invalid=info["invalid_move"],
         final_reward=reward,
         outcome=outcome,
+        llm_interactions=llm_log,
     )
