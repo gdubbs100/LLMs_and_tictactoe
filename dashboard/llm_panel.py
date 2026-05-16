@@ -55,8 +55,13 @@ def render_llm_panel(interaction: dict | None, player_name: str, piece: str) -> 
     all_sections: list[str] = []
     for i, attempt in enumerate(attempts):
         colors = ATTEMPT_COLORS[i % len(ATTEMPT_COLORS)]
+        tokens = attempt.get("tokens")
+        tok_str = f" — in={tokens['input']} out={tokens['output']}" if tokens else ""
+        reason = attempt.get("invalid_reason")
         if multi:
-            label = f"Attempt {i + 1}: {attempt.get('agent', player_name)}"
+            label = f"Attempt {i + 1}: {attempt.get('agent', player_name)}{tok_str}"
+            if reason:
+                label += f"  [reason: {reason}]"
             all_sections.append(_attempt_header(label, colors["header"], top=0.8 if i > 0 else 0))
 
         all_sections.append(_section("Prompt", attempt.get("prompt", ""), colors["prompt"]))
@@ -69,6 +74,13 @@ def render_llm_panel(interaction: dict | None, player_name: str, piece: str) -> 
         all_sections.append(
             '<div style="color:#a00;font-size:0.8rem;margin-top:0.4rem">'
             "&#9888; This move was invalid.</div>"
+        )
+
+    total = interaction.get("total_tokens")
+    if total:
+        all_sections.append(
+            f'<div style="font-size:0.8rem;opacity:0.7;margin-top:0.4rem">'
+            f'Total tokens — in: {total["input"]}, out: {total["output"]}</div>'
         )
 
     body = (

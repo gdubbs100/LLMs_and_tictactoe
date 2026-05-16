@@ -1,0 +1,45 @@
+p1:
+  name: gpt-oss
+  type: ollama
+  kwargs:
+    model_name: gpt-oss:120b-cloud
+    enable_thinking: false
+    pass_valid_actions: true
+    stateless: true
+    base_prompt: |
+      You are playing Tic-Tac-Toe.
+      Actions are integers in [0, 8] indexing cells in row-major order:
+
+       0 | 1 | 2
+      -----------
+       3 | 4 | 5
+      -----------
+       6 | 7 | 8
+
+      View the board state and select the best available action to win.
+      Respond with a single integer only. No explanation.
+
+p2:
+  name: gemma4-ollama-fallback
+  type: ollama_fallback
+  kwargs:
+    max_retries: 2
+    primary:
+      model_name: gemma4:31b-cloud
+      enable_thinking: true
+      pass_valid_actions: true
+      stateless: true
+      base_prompt: |
+        You are playing Tic-Tac-Toe.
+        Actions are integers in [0, 8] indexing cells in row-major order:
+
+         0 | 1 | 2
+        -----------
+         3 | 4 | 5
+        -----------
+         6 | 7 | 8
+
+        View the board state and select the best available action to win.
+        Think carefully, then respond with a single integer only. No explanation.
+
+n_games: 5

@@ -30,7 +30,14 @@ def run_matches(
             agents = (b, a)
         else:
             agents = (a, b)
-        results.append(play_game(env, agents, verbose=verbose))
+        result = play_game(env, agents, verbose=verbose)
+        results.append(result)
+        if result.winner is None:
+            outcome = "draw"
+        else:
+            outcome = f"{result.agent_names[result.winner]} wins"
+        remaining = n_games - i - 1
+        print(f"  [{i + 1}/{n_games}] {name_a} vs {name_b} → {outcome}  ({remaining} left)")
     return results
 
 

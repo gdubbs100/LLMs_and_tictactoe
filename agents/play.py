@@ -58,9 +58,13 @@ def play_game(
         player_log.append(player)
 
         if isinstance(agents[player], LLMAgent) and agents[player].log_interactions:
+            attempts = list(agents[player].last_interaction)
+            total_in = sum(a.get("tokens", {}).get("input", 0) for a in attempts)
+            total_out = sum(a.get("tokens", {}).get("output", 0) for a in attempts)
             llm_log[player].append({
-                "attempts": list(agents[player].last_interaction),
+                "attempts": attempts,
                 "move_valid": not info.get("invalid_move", False),
+                "total_tokens": {"input": total_in, "output": total_out},
             })
 
         if verbose:

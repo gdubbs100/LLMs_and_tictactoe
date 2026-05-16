@@ -49,8 +49,10 @@ class Tournament:
         for name, r in ratings.items():
             history.append({"game_idx": 0, "name": name, "rating": r})
 
+        pairs = list(combinations(self.agents.keys(), 2))
         game_counter = 0
-        for name_a, name_b in combinations(self.agents.keys(), 2):
+        for pair_idx, (name_a, name_b) in enumerate(pairs):
+            print(f"Pair {pair_idx + 1}/{len(pairs)}: {name_a} vs {name_b}")
             results = run_matches(
                 (name_a, self.agents[name_a]),
                 (name_b, self.agents[name_b]),

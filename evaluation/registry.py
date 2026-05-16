@@ -6,7 +6,8 @@ from agents.base import Agent
 from agents.random_agent import RandomAgent
 from agents.alphabeta_agent import AlphaBetaAgent
 from agents.hf_llm_agent import HFLLMAgent
-from agents.hf_fallback_agent import HFFallbackAgent
+from agents.ollama_agent import OllamaAgent
+from agents.fallback_agent import FallbackAgent
 from environment import TicTacToeEnv
 
 
@@ -37,7 +38,22 @@ def _hf_fallback_factory(**kwargs) -> AgentFactory:
 
     def make(env: TicTacToeEnv) -> Agent:
         primary = HFLLMAgent(**primary_cfg)
-        return HFFallbackAgent(primary=primary, **other)
+        return FallbackAgent(primary=primary, **other)
+    return make
+
+
+def _ollama_factory(**kwargs) -> AgentFactory:
+    def make(env: TicTacToeEnv) -> Agent:
+        return OllamaAgent(**kwargs)
+    return make
+
+
+def _ollama_fallback_factory(**kwargs) -> AgentFactory:
+    primary_cfg = kwargs.get("primary", {})
+    other = {k: v for k, v in kwargs.items() if k != "primary"}
+
+    def make(env: TicTacToeEnv) -> Agent:
+        return FallbackAgent(primary=OllamaAgent(**primary_cfg), **other)
     return make
 
 
@@ -46,6 +62,8 @@ REGISTRY: dict[str, Callable[..., AgentFactory]] = {
     "alphabeta": _alphabeta_factory,
     "hf": _hf_factory,
     "hf_fallback": _hf_fallback_factory,
+    "ollama": _ollama_factory,
+    "ollama_fallback": _ollama_fallback_factory,
 }
 
 

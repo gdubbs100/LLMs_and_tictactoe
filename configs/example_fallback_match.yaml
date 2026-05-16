@@ -2,10 +2,6 @@ p1:
   name: qwen3-fallback
   type: hf_fallback
   kwargs:
-    # Strategy options:
-    #   correction_prompt — fresh call quoting the invalid response and asking again
-    #   thinking_pass     — feeds the primary's <think> block to a non-thinking corrector call
-    strategy: thinking_pass
     max_retries: 2
     primary:
       model_name: Qwen/Qwen3-0.6B
@@ -30,10 +26,6 @@ p2:
   name: qwen3-fallback-no-thinking
   type: hf_fallback
   kwargs:
-    # Strategy options:
-    #   correction_prompt — fresh call quoting the invalid response and asking again
-    #   thinking_pass     — feeds the primary's <think> block to a non-thinking corrector call
-    strategy: thinking_pass
     max_retries: 2
     primary:
       model_name: Qwen/Qwen3-0.6B

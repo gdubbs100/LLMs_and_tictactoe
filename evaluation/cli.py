@@ -4,6 +4,10 @@ import argparse
 import shutil
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from evaluation.config import load_config, load_match_config
 from evaluation.metrics import score_results
 from evaluation.plots import (
