@@ -51,7 +51,7 @@ class HFFallbackAgent(LLMAgent):
                 f"{prev['response']!r} is not a valid move. "
                 f"Choose the correct integer for an unoccupied space.{valid_str}"
             )
-            et = None
+            et = False
         elif self.strategy == "thinking_pass":
             note = "\nNote: the above reasoning was cut off. Complete the analysis and give your final answer." if prev.get("thinking_truncated", False) else ""
             prompt = f"Analysis:\n{prev.get('thinking', '')}{note}\n\nState:\n{observation}.{valid_str}"
