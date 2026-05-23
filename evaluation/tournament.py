@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
 
 import pandas as pd
 
+from agents.ollama_agent import OllamaUnavailableError
 from agents.play import ResultSpec
 from evaluation.metrics import MatchStats, score_results
 from evaluation.registry import AgentFactory
 from evaluation.runner import run_matches, save_results
+
+logger = logging.getLogger(__name__)
+
+_OLLAMA_DEFER_WAIT = 30
 
 
 @dataclass
@@ -44,15 +51,18 @@ class Tournament:
         history: list[dict] = []
         all_games: list[ResultSpec] = []
         pair_stats: list[dict] = []
+        game_counter = 0
 
-        # Snapshot initial ratings
         for name, r in ratings.items():
             history.append({"game_idx": 0, "name": name, "rating": r})
 
         pairs = list(combinations(self.agents.keys(), 2))
-        game_counter = 0
-        for pair_idx, (name_a, name_b) in enumerate(pairs):
-            print(f"Pair {pair_idx + 1}/{len(pairs)}: {name_a} vs {name_b}")
+        n_pairs = len(pairs)
+        deferred: list[tuple[str, str]] = []
+
+        def _process_pair(name_a: str, name_b: str, label: str) -> None:
+            nonlocal game_counter
+            logger.info("%s: %s vs %s", label, name_a, name_b)
             results = run_matches(
                 (name_a, self.agents[name_a]),
                 (name_b, self.agents[name_b]),
@@ -61,9 +71,7 @@ class Tournament:
                 verbose=False,
             )
             for r in results:
-                # idx 0/1 in this game maps to whichever agent was placed there
                 idx_a = r.agent_names.index(name_a)
-                idx_b = 1 - idx_a
                 score_a = _outcome_score(r, idx_a)
                 score_b = 1.0 - score_a
                 exp_a = _expected(ratings[name_a], ratings[name_b])
@@ -74,12 +82,38 @@ class Tournament:
                 history.append({"game_idx": game_counter, "name": name_a, "rating": ratings[name_a]})
                 history.append({"game_idx": game_counter, "name": name_b, "rating": ratings[name_b]})
             all_games.extend(results)
-
             pair = score_results(results)
             for name, s in pair.items():
                 row = s.to_dict()
                 row["opponent"] = name_b if name == name_a else name_a
                 pair_stats.append(row)
+
+        for pair_idx, (name_a, name_b) in enumerate(pairs):
+            try:
+                _process_pair(name_a, name_b, f"Pair {pair_idx + 1}/{n_pairs}")
+            except OllamaUnavailableError:
+                logger.warning(
+                    "Ollama unavailable for %s vs %s — deferring. "
+                    "%d non-deferred pairs remaining.",
+                    name_a, name_b, n_pairs - pair_idx - 1 - len(deferred),
+                )
+                deferred.append((name_a, name_b))
+
+        if deferred:
+            logger.info(
+                "%d pair(s) deferred due to Ollama errors. Waiting %ds before retrying...",
+                len(deferred), _OLLAMA_DEFER_WAIT,
+            )
+            time.sleep(_OLLAMA_DEFER_WAIT)
+            for retry_idx, (name_a, name_b) in enumerate(deferred):
+                try:
+                    _process_pair(name_a, name_b, f"Retry {retry_idx + 1}/{len(deferred)}")
+                except OllamaUnavailableError:
+                    logger.error(
+                        "Ollama still unavailable for %s vs %s after wait — skipping pair.",
+                        name_a, name_b,
+                    )
+            logger.info("Tournament ending — %d pair(s) may have been skipped.", len(deferred))
 
         agent_stats = score_results(all_games)
         return TournamentResult(

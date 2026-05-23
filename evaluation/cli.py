@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import shutil
 from pathlib import Path
 
@@ -8,16 +9,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from agents.ollama_agent import OllamaUnavailableError
 from evaluation.config import load_config, load_match_config
-from evaluation.metrics import score_results
+from evaluation.metrics import aggregate_token_usage, collect_move_tokens, score_results
 from evaluation.plots import (
     plot_elo_history,
     plot_optimality,
     plot_outcome_rates,
     plot_pairwise_winrate,
+    plot_token_usage,
 )
 from evaluation.runner import run_matches, save_results
 from evaluation.tournament import Tournament, save_tournament
+
+logger = logging.getLogger(__name__)
 
 
 def cmd_match(args: argparse.Namespace) -> None:
@@ -25,11 +30,20 @@ def cmd_match(args: argparse.Namespace) -> None:
     out.mkdir(parents=True, exist_ok=True)
     cfg = load_match_config(args.config)
     fac_a, fac_b = cfg.agent_factories()
-    results = run_matches((cfg.p1.name, fac_a), (cfg.p2.name, fac_b), n_games=cfg.n_games)
+    try:
+        results = run_matches((cfg.p1.name, fac_a), (cfg.p2.name, fac_b), n_games=cfg.n_games)
+    except OllamaUnavailableError as e:
+        logger.error("Match ended early — Ollama unavailable: %s", e)
+        print("Match ended early due to Ollama error. No results saved.")
+        return
     save_results(results, out / "games.jsonl")
     stats = score_results(results)
     plot_outcome_rates(stats, out / "outcome_rates.png")
     plot_optimality(stats, out / "optimality.png")
+    token_stats = aggregate_token_usage(results)
+    move_tok = collect_move_tokens(results)
+    if token_stats:
+        plot_token_usage(token_stats, move_tok, out / "token_usage.png")
     print(f"Wrote {len(results)} games + plots to {out}")
 
 
@@ -63,6 +77,10 @@ def cmd_tournament(args: argparse.Namespace) -> None:
     plot_optimality(result.agent_stats, out / "optimality.png")
     plot_elo_history(result.rating_history, out / "elo_history.png")
     plot_pairwise_winrate(result.pair_stats, out / "pairwise_winrate.png")
+    token_stats = aggregate_token_usage(result.games)
+    move_tok = collect_move_tokens(result.games)
+    if token_stats:
+        plot_token_usage(token_stats, move_tok, out / "token_usage.png")
 
     print(f"Tournament '{cfg.name}' done. {len(result.games)} games written to {out}")
     print("Final ratings:")
@@ -71,6 +89,10 @@ def cmd_tournament(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
     p = argparse.ArgumentParser(prog="evaluation")
     sub = p.add_subparsers(dest="cmd", required=True)
 

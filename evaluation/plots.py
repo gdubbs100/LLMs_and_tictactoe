@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.lines import Line2D
 
 from evaluation.metrics import MatchStats
 
@@ -63,6 +65,58 @@ def plot_pairwise_winrate(pair_stats: list[dict] | pd.DataFrame, path: str | Pat
     fig, ax = plt.subplots(figsize=(7, 6))
     sns.heatmap(matrix, annot=True, fmt=".2f", cmap="RdYlGn", vmin=0, vmax=1, ax=ax)
     ax.set_title("Pairwise win rate (row vs column)")
+    fig.tight_layout()
+    fig.savefig(path)
+    return fig
+
+
+def plot_token_usage(
+    token_stats: dict[str, dict],
+    move_tokens: dict[str, list[int]],
+    path: str | Path,
+) -> plt.Figure | None:
+    """Two-panel token usage plot.
+
+    Left: stacked bar of total thinking + output tokens per agent.
+    Right: boxplot of per-move output token distribution with mean marked.
+    """
+    agents = [a for a in token_stats if token_stats[a]["output"] + token_stats[a]["thinking"] > 0]
+    if not agents:
+        return None
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    # --- stacked bar: total tokens ---
+    x = np.arange(len(agents))
+    think_vals = [token_stats[a]["thinking"] for a in agents]
+    out_vals = [token_stats[a]["output"] for a in agents]
+    ax1.bar(x, think_vals, label="thinking", color="steelblue")
+    ax1.bar(x, out_vals, bottom=think_vals, label="output", color="coral")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(agents, rotation=15, ha="right")
+    ax1.set_title("Total tokens per agent")
+    ax1.set_ylabel("tokens")
+    ax1.legend()
+
+    # --- boxplot: per-move distribution ---
+    box_agents = [a for a in agents if move_tokens.get(a)]
+    box_data = [move_tokens[a] for a in box_agents]
+    ax2.boxplot(
+        box_data, tick_labels=box_agents, showmeans=True, meanline=True,
+        meanprops={"color": "red", "linewidth": 1.5},
+        medianprops={"color": "black"},
+    )
+    ax2.set_title("Tokens per move (output incl. thinking)")
+    ax2.set_ylabel("tokens per move")
+    ax2.tick_params(axis="x", rotation=15)
+    ax2.legend(
+        handles=[
+            Line2D([0], [0], color="red", linewidth=1.5, label="mean"),
+            Line2D([0], [0], color="black", linewidth=1.5, label="median"),
+        ],
+        fontsize=8,
+    )
+
     fig.tight_layout()
     fig.savefig(path)
     return fig

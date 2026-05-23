@@ -3,7 +3,7 @@ p1:
   type: ollama
   kwargs:
     model_name: gpt-oss:120b-cloud
-    enable_thinking: false
+    enable_thinking: true
     pass_valid_actions: false
     stateless: true
     base_prompt: |
@@ -20,8 +20,8 @@ p1:
       Respond with a single integer only. No explanation.
 
 p2:
-  name: gemma4-ollama-fallback
-  type: ollama_fallback
+  name: gemma4-ollama
+  type: ollama
   kwargs:
     max_retries: 2
     primary:

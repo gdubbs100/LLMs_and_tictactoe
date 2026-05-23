@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 from pathlib import Path
 from typing import Iterable
 
+from agents.ollama_agent import OllamaUnavailableError
 from agents.play import ResultSpec, play_game
 from environment import TicTacToeEnv
 from evaluation.registry import AgentFactory
+
+logger = logging.getLogger(__name__)
+
+_GAME_RETRY_WAIT = 30
 
 
 def run_matches(
@@ -16,28 +23,52 @@ def run_matches(
     alternate_starts: bool = True,
     verbose: bool = False,
 ) -> list[ResultSpec]:
-    """Play n_games between two agents. By default alternates who starts."""
+    """Play n_games between two agents. By default alternates who starts.
+
+    Retries each game once on Ollama 500 errors (after _GAME_RETRY_WAIT seconds).
+    Raises OllamaUnavailableError if the retry also fails.
+    """
     results: list[ResultSpec] = []
     name_a, fac_a = agent_a
     name_b, fac_b = agent_b
     for i in range(n_games):
-        env = TicTacToeEnv()
-        a = fac_a(env)
-        a.name = name_a
-        b = fac_b(env)
-        b.name = name_b
-        if alternate_starts and i % 2 == 1:
-            agents = (b, a)
-        else:
-            agents = (a, b)
-        result = play_game(env, agents, verbose=verbose)
+        swapped = alternate_starts and i % 2 == 1
+
+        def _setup():
+            env = TicTacToeEnv()
+            a = fac_a(env)
+            a.name = name_a
+            b = fac_b(env)
+            b.name = name_b
+            return env, ((b, a) if swapped else (a, b))
+
+        env, agents = _setup()
+        try:
+            result = play_game(env, agents, verbose=verbose)
+        except OllamaUnavailableError as e:
+            logger.warning(
+                "Ollama 500 on game %d/%d (%s vs %s): %s — retrying in %ds...",
+                i + 1, n_games, name_a, name_b, e, _GAME_RETRY_WAIT,
+            )
+            time.sleep(_GAME_RETRY_WAIT)
+            env, agents = _setup()
+            try:
+                result = play_game(env, agents, verbose=verbose)
+                logger.info("Retry succeeded for game %d/%d (%s vs %s).", i + 1, n_games, name_a, name_b)
+            except OllamaUnavailableError:
+                logger.error(
+                    "Ollama still unavailable after retry for game %d/%d (%s vs %s). Aborting match.",
+                    i + 1, n_games, name_a, name_b,
+                )
+                raise
+
         results.append(result)
-        if result.winner is None:
-            outcome = "draw"
-        else:
-            outcome = f"{result.agent_names[result.winner]} wins"
+        outcome = "draw" if result.winner is None else f"{result.agent_names[result.winner]} wins"
         remaining = n_games - i - 1
-        print(f"  [{i + 1}/{n_games}] {name_a} vs {name_b} → {outcome}  ({remaining} left)")
+        logger.info(
+            "[%d/%d] %s vs %s → %s  (%d left)",
+            i + 1, n_games, name_a, name_b, outcome, remaining,
+        )
     return results
 
 

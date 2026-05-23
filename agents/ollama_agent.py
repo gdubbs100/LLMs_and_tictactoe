@@ -5,6 +5,10 @@ import ollama
 from agents.chat_agent import ChatAgent
 
 
+class OllamaUnavailableError(Exception):
+    """Raised when Ollama returns a 500 error."""
+
+
 class OllamaAgent(ChatAgent):
 
     def __init__(
@@ -31,7 +35,14 @@ class OllamaAgent(ChatAgent):
         enable_thinking: bool | None = None,
     ) -> tuple[str, str, dict]:
         et = self.enable_thinking if enable_thinking is None else enable_thinking
-        resp = ollama.chat(model=self.model_name, messages=messages, think=et)
+        try:
+            resp = ollama.chat(model=self.model_name, messages=messages, think=et)
+        except ollama.ResponseError as e:
+            if e.status_code == 500:
+                raise OllamaUnavailableError(
+                    f"Ollama 500 for {self.model_name}: {e}"
+                ) from e
+            raise
         return (
             resp.message.thinking or "",
             resp.message.content or "",

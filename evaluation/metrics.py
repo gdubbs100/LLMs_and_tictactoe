@@ -76,6 +76,49 @@ def count_optimal_actions(result: ResultSpec) -> dict[int, tuple[int, int]]:
     return {p: (c[0], c[1]) for p, c in counts.items()}
 
 
+def aggregate_token_usage(results: Iterable[ResultSpec]) -> dict[str, dict]:
+    """Sum output and thinking tokens per agent across all games.
+
+    Thinking tokens are estimated from the character-length ratio of thinking
+    vs response text within each attempt, applied to the reported output count.
+    Agents with no LLM interactions (e.g. alphabeta) are omitted.
+    """
+    stats: dict[str, dict] = {}
+    for r in results:
+        if not r.llm_interactions or not r.agent_names:
+            continue
+        for player_idx, moves in r.llm_interactions.items():
+            name = r.agent_names[int(player_idx)]
+            entry = stats.setdefault(name, {"output": 0, "thinking": 0})
+            for move in moves:
+                for attempt in move.get("attempts", []):
+                    total_out = attempt.get("tokens", {}).get("output", 0)
+                    thinking_text = attempt.get("thinking") or ""
+                    response_text = attempt.get("response") or ""
+                    total_chars = len(thinking_text) + len(response_text)
+                    if total_chars > 0:
+                        think_tok = round(total_out * len(thinking_text) / total_chars)
+                    else:
+                        think_tok = 0
+                    entry["thinking"] += think_tok
+                    entry["output"] += total_out - think_tok
+    return {k: v for k, v in stats.items() if v["output"] + v["thinking"] > 0}
+
+
+def collect_move_tokens(results: Iterable[ResultSpec]) -> dict[str, list[int]]:
+    """Collect per-move output token counts per agent (for distribution plots)."""
+    data: dict[str, list[int]] = {}
+    for r in results:
+        if not r.llm_interactions or not r.agent_names:
+            continue
+        for player_idx, moves in r.llm_interactions.items():
+            name = r.agent_names[int(player_idx)]
+            bucket = data.setdefault(name, [])
+            for move in moves:
+                bucket.append(move.get("total_tokens", {}).get("output", 0))
+    return {k: v for k, v in data.items() if v}
+
+
 def score_results(results: Iterable[ResultSpec]) -> dict[str, MatchStats]:
     """Aggregate per-agent stats. Uses agent_names recorded on each result."""
     stats: dict[str, MatchStats] = {}
