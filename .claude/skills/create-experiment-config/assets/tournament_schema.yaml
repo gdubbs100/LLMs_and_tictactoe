@@ -1,0 +1,132 @@
+# Schema for a tournament config file (used by evaluation/cli.py to run a round-robin tournament).
+# A tournament runs every agent pair against each other and tracks Elo ratings.
+
+# ── Top-level fields ───────────────────────────────────────────────────────────
+
+name: ""                    # REQUIRED (str). Identifier for this tournament run.
+                            # Used in output filenames and result summaries.
+                            # Example: "baseline_v1", "qwen_vs_ollama"
+
+games_per_pair: 50          # OPTIONAL (int, default 50). Number of games played between
+                            # each ordered pair of agents. Total games = n_agents * (n_agents-1) * games_per_pair.
+
+k_factor: 32.0              # OPTIONAL (float, default 32.0). Elo K-factor controlling
+                            # how much each game result shifts ratings.
+                            # Higher = faster rating changes; lower = more stable ratings.
+
+initial_rating: 1000.0      # OPTIONAL (float, default 1000.0). Starting Elo rating
+                            # assigned to every agent before any games are played.
+
+seed: null                  # OPTIONAL (int | null, default null). Global RNG seed for
+                            # reproducible game ordering. Set to an integer for reproducibility.
+
+agents:                     # REQUIRED (list). One or more agent entries.
+  - <<: *agent_config       # Each entry follows the Agent config structure below.
+
+
+# ── Agent config (each entry in `agents`) ─────────────────────────────────────
+# Each agent entry has three fields: name, type, and kwargs.
+
+# name: REQUIRED (str). Unique label for the agent within this tournament.
+#   Used in Elo tables, plots, and log filenames. Must be unique across agents list.
+#   Example: "qwen3-0.6b", "alphabeta", "random-seed1"
+
+# type: REQUIRED (str). One of the following values:
+#   - "alphabeta"       — deterministic minimax agent; no kwargs needed
+#   - "random"          — random-action agent; optional kwargs: seed (int)
+#   - "hf"              — HuggingFace local model (HFLLMAgent)
+#   - "hf_fallback"     — HFLLMAgent wrapped in FallbackAgent
+#   - "ollama"          — Ollama-served model (OllamaAgent)
+#   - "ollama_fallback" — OllamaAgent wrapped in FallbackAgent
+
+# kwargs: OPTIONAL (mapping). Constructor arguments for the chosen type.
+#   Omit entirely for types that need no kwargs (e.g. alphabeta, random without seed).
+
+
+# ── kwargs for type: "random" ──────────────────────────────────────────────────
+# seed: int | null  — RNG seed. Use different seeds to create distinct random agents.
+
+
+# ── kwargs for type: "hf" ─────────────────────────────────────────────────────
+# model_name:        REQUIRED (str). HuggingFace model ID, e.g. "Qwen/Qwen3-0.6B".
+# base_prompt:       REQUIRED (str). System prompt given to the model. Should describe
+#                    the game, board indexing (0-8 row-major), and required response format
+#                    (single integer, no explanation).
+# enable_thinking:   OPTIONAL (bool, default false). Enable chain-of-thought / <think>
+#                    blocks. Supported by Qwen3 family models.
+# pass_valid_actions: OPTIONAL (bool, default true). Include the list of legal moves
+#                    in each user message sent to the model.
+# stateless:         OPTIONAL (bool, default true). If true, send only the system prompt
+#                    + current board state each turn (no conversation history).
+# max_new_tokens:    OPTIONAL (int, default 256). Token budget for model generation.
+# verbose:           OPTIONAL (bool, default false). Stream tokens to stdout.
+# log_interactions:  OPTIONAL (bool, default true). Save each turn's full interaction.
+
+
+# ── kwargs for type: "ollama" ─────────────────────────────────────────────────
+# model_name:        REQUIRED (str). Ollama model tag, e.g. "gemma4:31b-cloud".
+# base_prompt:       REQUIRED (str). System prompt (same guidance as for "hf").
+# enable_thinking:   OPTIONAL (bool, default false). Enable thinking/reasoning mode.
+# pass_valid_actions: OPTIONAL (bool, default true). Include legal moves in user message.
+# stateless:         OPTIONAL (bool, default true). Stateless turn context.
+# log_interactions:  OPTIONAL (bool, default true). Save each turn's full interaction.
+
+
+# ── kwargs for type: "hf_fallback" or "ollama_fallback" ───────────────────────
+# max_retries:  OPTIONAL (int, default 1). Corrective retry attempts when the primary
+#               agent returns an illegal or non-integer action.
+# primary:      REQUIRED (mapping). Constructor kwargs for the underlying model agent.
+#               Use "hf" kwargs fields inside primary for hf_fallback, or "ollama" kwargs
+#               fields for ollama_fallback. Nest model_name and all other args here.
+
+
+# ── Minimal examples ──────────────────────────────────────────────────────────
+
+# Example A — small tournament, three simple agents:
+# name: simple_baseline
+# games_per_pair: 20
+# k_factor: 32
+# initial_rating: 1000
+# seed: 0
+# agents:
+#   - name: alphabeta
+#     type: alphabeta
+#   - name: random_a
+#     type: random
+#     kwargs:
+#       seed: 1
+#   - name: random_b
+#     type: random
+#     kwargs:
+#       seed: 2
+
+# Example B — mixed LLM tournament with fallback agents:
+# name: llm_benchmark
+# games_per_pair: 10
+# seed: 42
+# agents:
+#   - name: alphabeta
+#     type: alphabeta
+#   - name: qwen3-fallback
+#     type: hf_fallback
+#     kwargs:
+#       max_retries: 2
+#       primary:
+#         model_name: Qwen/Qwen3-0.6B
+#         enable_thinking: true
+#         pass_valid_actions: true
+#         stateless: true
+#         max_new_tokens: 512
+#         base_prompt: |
+#           You are playing Tic-Tac-Toe. ...
+#   - name: gemma4-ollama
+#     type: ollama_fallback
+#     kwargs:
+#       max_retries: 2
+#       primary:
+#         model_name: gemma4:31b-cloud
+#         enable_thinking: true
+#         pass_valid_actions: true
+#         stateless: true
+#         base_prompt: |
+#           You are playing Tic-Tac-Toe. ...
