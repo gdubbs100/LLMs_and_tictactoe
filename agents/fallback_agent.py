@@ -66,16 +66,17 @@ class FallbackAgent(LLMAgent):
             return (
                 f"Analysis:\n{prev.get('thinking', '')}\n"
                 f"Note: reasoning was cut off. Give your final answer now.\n\n"
-                f"State:\n{observation}. Valid moves: {valid_str}"
+                f"Respond with a single integer only, no explanation."
+                f"State:\n{observation}. {valid_str}"
             )
         if reason == "not_integer":
             return (
                 f"State:\n{observation}\n\n"
                 f"Your previous response {prev['response']!r} was not a single integer. "
-                f"Respond with a single integer only. Valid moves: {valid_str}"
+                f"Respond with a single integer only, no explanation. {valid_str}"
             )
         return (
             f"State:\n{observation}\n\n"
             f"{prev['response']!r} is not an available cell. "
-            f"Respond with a single integer only. Valid moves: {valid_str}"
+            f"Respond with a single integer only, no explanation. {valid_str}"
         )
