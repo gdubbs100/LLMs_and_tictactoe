@@ -10,6 +10,7 @@ import pandas as pd
 
 from agents.ollama_agent import OllamaUnavailableError
 from agents.play import ResultSpec
+from environment.tictactoe_env import BoardSpec
 from evaluation.metrics import MatchStats, score_results
 from evaluation.registry import AgentFactory
 from evaluation.runner import run_matches, save_results
@@ -45,6 +46,7 @@ class Tournament:
     k_factor: float = 32.0
     initial_rating: float = 1000.0
     alternate_starts: bool = True
+    board_spec: BoardSpec = field(default_factory=BoardSpec)
 
     def run(self) -> TournamentResult:
         ratings = {name: self.initial_rating for name in self.agents}
@@ -69,6 +71,7 @@ class Tournament:
                 n_games=self.games_per_pair,
                 alternate_starts=self.alternate_starts,
                 verbose=False,
+                board_spec=self.board_spec,
             )
             for r in results:
                 idx_a = r.agent_names.index(name_a)

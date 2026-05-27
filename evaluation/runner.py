@@ -9,6 +9,7 @@ from typing import Iterable
 from agents.ollama_agent import OllamaUnavailableError
 from agents.play import ResultSpec, play_game
 from environment import TicTacToeEnv
+from environment.tictactoe_env import BoardSpec
 from evaluation.registry import AgentFactory
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def run_matches(
     n_games: int,
     alternate_starts: bool = True,
     verbose: bool = False,
+    board_spec: BoardSpec | None = None,
 ) -> list[ResultSpec]:
     """Play n_games between two agents. By default alternates who starts.
 
@@ -35,7 +37,7 @@ def run_matches(
         swapped = alternate_starts and i % 2 == 1
 
         def _setup():
-            env = TicTacToeEnv()
+            env = TicTacToeEnv(board_spec=board_spec)
             a = fac_a(env)
             a.name = name_a
             b = fac_b(env)

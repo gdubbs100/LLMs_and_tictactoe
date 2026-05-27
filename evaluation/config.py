@@ -5,7 +5,14 @@ from pathlib import Path
 
 import yaml
 
+from environment.tictactoe_env import BoardSpec
 from evaluation.registry import AgentFactory, make_agent_factory
+
+
+def _parse_board_spec(d: dict | None) -> BoardSpec:
+    if not d:
+        return BoardSpec()
+    return BoardSpec(**{**d, "pieces": tuple(d["pieces"])} if "pieces" in d else d)
 
 
 @dataclass
@@ -20,6 +27,7 @@ class MatchConfig:
     p1: AgentConfig
     p2: AgentConfig
     n_games: int = 1
+    board_spec: BoardSpec = field(default_factory=BoardSpec)
 
     def agent_factories(self) -> tuple[AgentFactory, AgentFactory]:
         fac1 = make_agent_factory(self.p1.type, **self.p1.kwargs)
@@ -35,6 +43,7 @@ class TournamentConfig:
     k_factor: float = 32.0
     initial_rating: float = 1000.0
     seed: int | None = None
+    board_spec: BoardSpec = field(default_factory=BoardSpec)
 
     def agent_factories(self) -> dict[str, AgentFactory]:
         out: dict[str, AgentFactory] = {}
@@ -49,6 +58,7 @@ def load_match_config(path: str | Path) -> MatchConfig:
         p1=AgentConfig(**raw["p1"]),
         p2=AgentConfig(**raw["p2"]),
         n_games=raw.get("n_games", 1),
+        board_spec=_parse_board_spec(raw.get("board_spec")),
     )
 
 
@@ -62,4 +72,5 @@ def load_config(path: str | Path) -> TournamentConfig:
         k_factor=raw.get("k_factor", 32.0),
         initial_rating=raw.get("initial_rating", 1000.0),
         seed=raw.get("seed"),
+        board_spec=_parse_board_spec(raw.get("board_spec")),
     )

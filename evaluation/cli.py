@@ -31,7 +31,7 @@ def cmd_match(args: argparse.Namespace) -> None:
     cfg = load_match_config(args.config)
     fac_a, fac_b = cfg.agent_factories()
     try:
-        results = run_matches((cfg.p1.name, fac_a), (cfg.p2.name, fac_b), n_games=cfg.n_games)
+        results = run_matches((cfg.p1.name, fac_a), (cfg.p2.name, fac_b), n_games=cfg.n_games, board_spec=cfg.board_spec)
     except OllamaUnavailableError as e:
         logger.error("Match ended early — Ollama unavailable: %s", e)
         print("Match ended early due to Ollama error. No results saved.")
@@ -69,6 +69,7 @@ def cmd_tournament(args: argparse.Namespace) -> None:
         games_per_pair=cfg.games_per_pair,
         k_factor=cfg.k_factor,
         initial_rating=cfg.initial_rating,
+        board_spec=cfg.board_spec,
     )
     result = tourney.run()
     save_tournament(result, out)
