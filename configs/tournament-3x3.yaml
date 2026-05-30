@@ -1,0 +1,50 @@
+name: tournament-3x3
+games_per_pair: 15
+k_factor: 32.0
+initial_rating: 1000.0
+
+env:
+  size: 3
+  win_length: 3
+
+agents:
+  - name: random
+    type: random
+
+  - name: alphabeta
+    type: alphabeta
+
+  - name: gemma4-ollama
+    type: ollama
+    kwargs:
+      model_name: gemma4:31b-cloud
+      enable_thinking: true
+      pass_valid_actions: false
+      stateless: true
+      base_prompt: &prompt_3x3 |
+        You are playing a game on a 3x3 grid. The cells are numbered 0-8 in
+        row-major order, starting at the top-left (0) and going
+        left-to-right, top-to-bottom, so the bottom-right cell is 8:
+
+         0 | 1 | 2
+        -----------
+         3 | 4 | 5
+        -----------
+         6 | 7 | 8
+
+        Two players take turns placing their mark in an empty cell. The first player to get 3 of their own
+        marks in a line — horizontally, vertically, or diagonally — wins. If
+        every cell is filled with no such line, the game is a draw.
+
+        On your turn, choose an empty cell that brings you closer to a line of
+        3 while blocking your opponent's. Respond with a single integer (the
+        cell number) only. No explanation.
+
+  - name: gpt-oss
+    type: ollama
+    kwargs:
+      model_name: gpt-oss:120b-cloud
+      enable_thinking: true
+      pass_valid_actions: false
+      stateless: true
+      base_prompt: *prompt_3x3

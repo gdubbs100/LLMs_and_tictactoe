@@ -27,7 +27,7 @@ class FallbackAgent(LLMAgent):
         retries_left = self.max_retries
         while action not in valid_actions and retries_left > 0:
             reason = self._classify(attempts[-1])
-            attempts.append(self._fallback(observation, valid_actions, attempts[-1], reason))
+            attempts.append(self._fallback(observation, valid_actions, attempts[-1], reason, player_idx))
             try:
                 action = int(attempts[-1]["response"])
             except (ValueError, TypeError):
@@ -47,8 +47,8 @@ class FallbackAgent(LLMAgent):
             return "not_integer"
         return "invalid_cell"
 
-    def _fallback(self, observation: str, valid_actions: list[int], prev: dict, reason: str) -> dict:
-        prompt = self._build_prompt(observation, valid_actions, prev, reason)
+    def _fallback(self, observation: str, valid_actions: list[int], prev: dict, reason: str, player_idx: int) -> dict:
+        prompt = self._build_prompt(observation, valid_actions, prev, reason, player_idx)
         messages = [self.primary.messages[0], {"role": "user", "content": prompt}]
         thinking, response, tokens = self.primary.generate(messages, enable_thinking=False)
         return {
@@ -60,10 +60,15 @@ class FallbackAgent(LLMAgent):
             "tokens": tokens,
         }
 
-    def _build_prompt(self, observation: str, valid_actions: list[int], prev: dict, reason: str) -> str:
+    def _build_prompt(self, observation: str, valid_actions: list[int], prev: dict, reason: str, player_idx: int) -> str:
         valid_str = f" Valid moves: {valid_actions}." if self.primary.pass_valid_actions else ""
+        piece_str = (
+            f'You are playing as "{self.primary.pieces[player_idx]}". '
+            f'Your opponent is "{self.primary.pieces[1 - player_idx]}".\n\n'
+        )
         if reason == "thinking_truncated":
             return (
+                f"{piece_str}"
                 f"Analysis:\n{prev.get('thinking', '')}\n"
                 f"Note: reasoning was cut off. Give your final answer now.\n\n"
                 f"Respond with a single integer only, no explanation."
@@ -71,11 +76,13 @@ class FallbackAgent(LLMAgent):
             )
         if reason == "not_integer":
             return (
+                f"{piece_str}"
                 f"State:\n{observation}\n\n"
                 f"Your previous response {prev['response']!r} was not a single integer. "
                 f"Respond with a single integer only, no explanation. {valid_str}"
             )
         return (
+            f"{piece_str}"
             f"State:\n{observation}\n\n"
             f"{prev['response']!r} is not an available cell. "
             f"Respond with a single integer only, no explanation. {valid_str}"

@@ -13,7 +13,9 @@ n_games: 1                  # OPTIONAL (default 1). Number of games to play betw
 
 env:                        # OPTIONAL. Game environment settings.
   size: 3                   #   Board dimension (default 3). Use 4 for 4×4.
-                            #   NOTE: type "alphabeta" only works with size 3.
+                            #   NOTE: type "alphabeta" plays any size, but for size > 3 it
+                            #   searches on-the-fly (no precomputed table), so the first game
+                            #   is slow while its cache warms.
   win_length: 3             #   Pieces in a row needed to win (default = size).
 
 

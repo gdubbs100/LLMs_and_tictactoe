@@ -15,6 +15,7 @@ class ChatAgent(LLMAgent):
     messages: list[dict]
     log_interactions: bool
     last_interaction: list[dict]
+    pieces: tuple[str, str] = ("X", "O")
 
     @abstractmethod
     def generate(
@@ -26,7 +27,11 @@ class ChatAgent(LLMAgent):
         ...
 
     def act(self, observation: str, valid_actions: list[int], player_idx: int) -> int:
-        user_content = f"State:\n{observation}"
+        user_content = (
+            f'You are playing as "{self.pieces[player_idx]}". '
+            f'Your opponent is "{self.pieces[1 - player_idx]}".\n\n'
+            f"State:\n{observation}"
+        )
         if self.pass_valid_actions:
             user_content += f"\n\nValid moves:\n{valid_actions}"
 

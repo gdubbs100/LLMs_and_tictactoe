@@ -28,7 +28,7 @@ def _alphabeta_factory(**kwargs) -> AgentFactory:
 
 def _hf_factory(**kwargs) -> AgentFactory:
     def make(env: TicTacToeEnv) -> Agent:
-        return HFLLMAgent(**kwargs)
+        return HFLLMAgent(pieces=env.board_spec.pieces, **kwargs)
     return make
 
 
@@ -37,14 +37,14 @@ def _hf_fallback_factory(**kwargs) -> AgentFactory:
     other = {k: v for k, v in kwargs.items() if k != "primary"}
 
     def make(env: TicTacToeEnv) -> Agent:
-        primary = HFLLMAgent(**primary_cfg)
+        primary = HFLLMAgent(pieces=env.board_spec.pieces, **primary_cfg)
         return FallbackAgent(primary=primary, **other)
     return make
 
 
 def _ollama_factory(**kwargs) -> AgentFactory:
     def make(env: TicTacToeEnv) -> Agent:
-        return OllamaAgent(**kwargs)
+        return OllamaAgent(pieces=env.board_spec.pieces, **kwargs)
     return make
 
 
@@ -53,7 +53,8 @@ def _ollama_fallback_factory(**kwargs) -> AgentFactory:
     other = {k: v for k, v in kwargs.items() if k != "primary"}
 
     def make(env: TicTacToeEnv) -> Agent:
-        return FallbackAgent(primary=OllamaAgent(**primary_cfg), **other)
+        primary = OllamaAgent(pieces=env.board_spec.pieces, **primary_cfg)
+        return FallbackAgent(primary=primary, **other)
     return make
 
 

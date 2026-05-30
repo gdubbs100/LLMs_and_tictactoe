@@ -19,6 +19,7 @@ class OllamaAgent(ChatAgent):
         pass_valid_actions: bool = True,
         stateless: bool = True,
         log_interactions: bool = True,
+        pieces: tuple[str, str] = ("X", "O"),
     ):
         self.model_name = model_name
         self.name = model_name
@@ -26,6 +27,7 @@ class OllamaAgent(ChatAgent):
         self.pass_valid_actions = pass_valid_actions
         self.stateless = stateless
         self.log_interactions = log_interactions
+        self.pieces = tuple(pieces)
         self.last_interaction: list[dict] = []
         self.messages = [{"role": "system", "content": base_prompt}]
 

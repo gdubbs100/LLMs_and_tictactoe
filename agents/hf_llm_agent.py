@@ -18,6 +18,7 @@ class HFLLMAgent(ChatAgent):
         max_new_tokens: int = 256,
         verbose: bool = False,
         log_interactions: bool = True,
+        pieces: tuple[str, str] = ("X", "O"),
     ):
         self.model_name = model_name
         self.name = model_name
@@ -27,6 +28,7 @@ class HFLLMAgent(ChatAgent):
         self.max_new_tokens = max_new_tokens
         self.verbose = verbose
         self.log_interactions = log_interactions
+        self.pieces = tuple(pieces)
         self.last_interaction: list[dict] = []
 
         token = os.environ.get("HF_TOKEN")
