@@ -47,6 +47,7 @@ class Tournament:
     initial_rating: float = 1000.0
     alternate_starts: bool = True
     board_spec: BoardSpec = field(default_factory=BoardSpec)
+    env_kwargs: dict = field(default_factory=dict)
 
     def run(self) -> TournamentResult:
         ratings = {name: self.initial_rating for name in self.agents}
@@ -72,6 +73,7 @@ class Tournament:
                 alternate_starts=self.alternate_starts,
                 verbose=False,
                 board_spec=self.board_spec,
+                env_kwargs=self.env_kwargs,
             )
             for r in results:
                 idx_a = r.agent_names.index(name_a)

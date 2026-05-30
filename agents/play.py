@@ -20,6 +20,8 @@ class ResultSpec:
     final_reward: float | None = None
     outcome: str | None = None
     llm_interactions: dict = field(default_factory=dict)
+    size: int | None = None
+    win_length: int | None = None
 
 
 def play_game(
@@ -45,7 +47,7 @@ def play_game(
         player = info["current_player"]
         action = agents[player].act(obs, info["valid_actions"], player)
 
-        if not (0 <= action <= 8):
+        if not (0 <= action < env.action_space.n):
             info = {"invalid_move": True, "mover": player, "winner": None, "current_player": player, "valid_actions": []}
             reward = env.invalid_move_reward
             terminated = True
@@ -100,4 +102,6 @@ def play_game(
         final_reward=reward,
         outcome=outcome,
         llm_interactions=llm_log,
+        size=env.size,
+        win_length=env.win_length,
     )

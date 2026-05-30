@@ -3,9 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from agents.alphabeta_agent import action_value
+from agents.alphabeta_agent import _make_move_order, negamax_nxn
 from agents.play import ResultSpec
-from environment.board import Board, current_player, is_full, winner
+from environment.board import (
+    Board,
+    apply_move,
+    current_player,
+    is_full,
+    make_lines,
+    winner,
+)
 
 
 @dataclass
@@ -57,21 +64,40 @@ class MatchStats:
         }
 
 
-def is_optimal_action(board: Board, action: int) -> bool:
-    """An action is optimal iff its value equals the max value at this state."""
-    if winner(board) or is_full(board):
+def is_optimal_action(board: Board, action: int, lines: tuple, move_order: tuple) -> bool:
+    """An action is optimal iff its value equals the max value at this state.
+
+    Works for any NxN board; `lines` and `move_order` describe the board shape.
+    """
+    if winner(board, lines) or is_full(board):
         return False
-    chosen = action_value(board, action)
-    best = max(action_value(board, a) for a in range(9))
+    player = current_player(board)
+
+    def value(a: int) -> float:
+        if board[a] != 0:
+            return -1.0
+        return -negamax_nxn(apply_move(board, a, player), lines, move_order)
+
+    chosen = value(action)
+    best = max(value(a) for a in range(len(board)))
     return abs(chosen - best) < 1e-9
 
 
 def count_optimal_actions(result: ResultSpec) -> dict[int, tuple[int, int]]:
-    """Returns {player_idx: (optimal, total)} for each agent in the game."""
+    """Returns {player_idx: (optimal, total)} for each agent in the game.
+
+    Board shape comes from the result; legacy results without it are inferred
+    from the board length (square board, win_length == size).
+    """
+    n = len(result.boards[0]) if result.boards else 0
+    size = result.size or int(round(n ** 0.5))
+    win_length = result.win_length or size
+    lines = make_lines(size, win_length)
+    move_order = _make_move_order(size)
     counts = {0: [0, 0], 1: [0, 0]}
     for board, action, player in zip(result.boards, result.actions, result.player):
         counts[player][1] += 1
-        if is_optimal_action(board, action):
+        if is_optimal_action(board, action, lines, move_order):
             counts[player][0] += 1
     return {p: (c[0], c[1]) for p, c in counts.items()}
 

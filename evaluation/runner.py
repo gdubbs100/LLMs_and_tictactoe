@@ -24,6 +24,7 @@ def run_matches(
     alternate_starts: bool = True,
     verbose: bool = False,
     board_spec: BoardSpec | None = None,
+    env_kwargs: dict | None = None,
 ) -> list[ResultSpec]:
     """Play n_games between two agents. By default alternates who starts.
 
@@ -37,7 +38,7 @@ def run_matches(
         swapped = alternate_starts and i % 2 == 1
 
         def _setup():
-            env = TicTacToeEnv(board_spec=board_spec)
+            env = TicTacToeEnv(board_spec=board_spec, **(env_kwargs or {}))
             a = fac_a(env)
             a.name = name_a
             b = fac_b(env)
@@ -89,6 +90,8 @@ def save_results(results: Iterable[ResultSpec], path: str | Path) -> None:
                 "final_reward": r.final_reward,
                 "outcome": r.outcome,
                 "llm_interactions": {str(k): v for k, v in (r.llm_interactions or {}).items()},
+                "size": r.size,
+                "win_length": r.win_length,
             }) + "\n")
 
 

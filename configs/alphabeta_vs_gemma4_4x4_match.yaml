@@ -1,0 +1,31 @@
+p1:
+  name: alphabeta
+  type: alphabeta
+
+p2:
+  name: gemma4
+  type: ollama
+  kwargs:
+    model_name: gemma4:31b-cloud
+    enable_thinking: true
+    pass_valid_actions: true
+    stateless: true
+    base_prompt: |
+      You are playing Tic-Tac-Toe on a 4x4 board.
+      Actions are integers in [0, 15] indexing cells in row-major order:
+
+       0 | 1 | 2 | 3
+      ----------------
+       4 | 5 | 6 | 7
+      ----------------
+       8 | 9 |10 |11
+      ----------------
+      12 |13 |14 |15
+
+      Get 4 in a row (horizontally, vertically, or diagonally) to win.
+      Respond with a single integer only. No explanation.
+
+n_games: 1
+
+env:
+  size: 4

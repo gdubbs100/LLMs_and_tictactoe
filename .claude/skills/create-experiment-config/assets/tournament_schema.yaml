@@ -20,6 +20,11 @@ initial_rating: 1000.0      # OPTIONAL (float, default 1000.0). Starting Elo rat
 seed: null                  # OPTIONAL (int | null, default null). Global RNG seed for
                             # reproducible game ordering. Set to an integer for reproducibility.
 
+env:                        # OPTIONAL. Game environment settings.
+  size: 3                   #   Board dimension (default 3). Use 4 for 4×4.
+                            #   NOTE: type "alphabeta" only works with size 3.
+  win_length: 3             #   Pieces in a row needed to win (default = size).
+
 agents:                     # REQUIRED (list). One or more agent entries.
   - <<: *agent_config       # Each entry follows the Agent config structure below.
 

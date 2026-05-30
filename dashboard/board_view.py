@@ -8,11 +8,16 @@ PIECE_HTML = {
     2: '<span style="color:#d1242f;font-weight:700">O</span>',
 }
 
-CELL_STYLE = (
-    "width:90px;height:90px;border:2px solid #333;"
-    "text-align:center;vertical-align:middle;font-size:2.5rem;"
-    "font-family:monospace;"
-)
+def _cell_style(size: int) -> str:
+    px = 90 if size <= 3 else 70 if size == 4 else 55
+    font = "2.5rem" if size <= 3 else "2rem" if size == 4 else "1.5rem"
+    return (
+        f"width:{px}px;height:{px}px;border:2px solid #333;"
+        f"text-align:center;vertical-align:middle;font-size:{font};"
+        "font-family:monospace;"
+    )
+
+
 HIGHLIGHT_BG = "background:#fff3a8;"
 
 
@@ -27,13 +32,16 @@ def render_board(
     title = f"**{name_x}** (X) &nbsp; vs &nbsp; **{name_o}** (O)"
     st.markdown(f"<div style='text-align:center;font-size:1.1rem'>{title}</div>", unsafe_allow_html=True)
 
+    size = int(round(len(board) ** 0.5))
+    cell_style = _cell_style(size)
+
     rows_html = []
-    for r in range(3):
+    for r in range(size):
         cells = []
-        for c in range(3):
-            i = r * 3 + c
+        for c in range(size):
+            i = r * size + c
             piece = PIECE_HTML[board[i]].format(i=i)
-            style = CELL_STYLE + (HIGHLIGHT_BG if i == last_action else "")
+            style = cell_style + (HIGHLIGHT_BG if i == last_action else "")
             cells.append(f'<td style="{style}">{piece}</td>')
         rows_html.append("<tr>" + "".join(cells) + "</tr>")
 

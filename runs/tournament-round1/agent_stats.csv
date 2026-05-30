@@ -1,0 +1,6 @@
+agent_name,games,wins,draws,losses,invalid_moves,optimal_actions,total_actions,win_rate,draw_rate,loss_rate,invalid_rate,optimality_rate
+random,40,10,0,30,0,58,97,0.25,0.0,0.75,0.0,0.5979381443298969
+alphabeta,40,20,20,0,0,141,141,0.5,0.5,0.0,0.0,1.0
+gemma4-ollama,40,20,20,0,0,136,142,0.5,0.5,0.0,0.0,0.9577464788732394
+gpt-oss,40,20,20,0,0,136,142,0.5,0.5,0.0,0.0,0.9577464788732394
+qwen3-0.6b,40,0,0,40,32,40,93,0.0,0.0,1.0,0.8,0.43010752688172044

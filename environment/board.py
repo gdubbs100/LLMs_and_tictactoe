@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-# Board: tuple of 9 ints in row-major order.
+# Board: tuple of size*size ints in row-major order (NxN, size>=3).
 #   0 = empty, 1 = player 0's piece, 2 = player 1's piece.
 #
-#   0 | 1 | 2
-#   ---------
-#   3 | 4 | 5
-#   ---------
-#   6 | 7 | 8
+#   For the default 3x3 board cells are indexed:
+#       0 | 1 | 2
+#       ---------
+#       3 | 4 | 5
+#       ---------
+#       6 | 7 | 8
+#
+# `EMPTY` and `LINES` below are 3x3 conveniences for the precomputed fast path
+# (winner()'s default lines, AlphaBetaAgent.build_policy). NxN callers pass
+# lines from make_lines(size, win_length) instead.
 
 Board = tuple[int, ...]
 
@@ -20,11 +25,30 @@ LINES = (
 )
 
 
-def winner(board: Board) -> int:
+def make_lines(size: int, win_length: int) -> tuple:
+    """Generate all winning lines for an NxN board with the given win_length."""
+    lines = []
+    for r in range(size):
+        for c in range(size - win_length + 1):
+            lines.append(tuple(r * size + c + i for i in range(win_length)))
+    for c in range(size):
+        for r in range(size - win_length + 1):
+            lines.append(tuple((r + i) * size + c for i in range(win_length)))
+    for r in range(size - win_length + 1):
+        for c in range(size - win_length + 1):
+            lines.append(tuple((r + i) * size + (c + i) for i in range(win_length)))
+    for r in range(size - win_length + 1):
+        for c in range(win_length - 1, size):
+            lines.append(tuple((r + i) * size + (c - i) for i in range(win_length)))
+    return tuple(lines)
+
+
+def winner(board: Board, lines: tuple = LINES) -> int:
     """Return the winning piece (1 or 2), or 0 if no winner."""
-    for a, b, c in LINES:
-        if board[a] and board[a] == board[b] == board[c]:
-            return board[a]
+    for line in lines:
+        piece = board[line[0]]
+        if piece and all(board[i] == piece for i in line):
+            return piece
     return 0
 
 

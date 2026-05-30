@@ -11,6 +11,11 @@ p2:                         # REQUIRED. Configuration for player 2. See "Agent c
 
 n_games: 1                  # OPTIONAL (default 1). Number of games to play between p1 and p2.
 
+env:                        # OPTIONAL. Game environment settings.
+  size: 3                   #   Board dimension (default 3). Use 4 for 4×4.
+                            #   NOTE: type "alphabeta" only works with size 3.
+  win_length: 3             #   Pieces in a row needed to win (default = size).
+
 
 # ── Agent config (used for p1 and p2) ─────────────────────────────────────────
 # Each agent block has three fields: name, type, and kwargs.

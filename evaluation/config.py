@@ -28,6 +28,7 @@ class MatchConfig:
     p2: AgentConfig
     n_games: int = 1
     board_spec: BoardSpec = field(default_factory=BoardSpec)
+    env_kwargs: dict = field(default_factory=dict)
 
     def agent_factories(self) -> tuple[AgentFactory, AgentFactory]:
         fac1 = make_agent_factory(self.p1.type, **self.p1.kwargs)
@@ -44,6 +45,7 @@ class TournamentConfig:
     initial_rating: float = 1000.0
     seed: int | None = None
     board_spec: BoardSpec = field(default_factory=BoardSpec)
+    env_kwargs: dict = field(default_factory=dict)
 
     def agent_factories(self) -> dict[str, AgentFactory]:
         out: dict[str, AgentFactory] = {}
@@ -59,6 +61,7 @@ def load_match_config(path: str | Path) -> MatchConfig:
         p2=AgentConfig(**raw["p2"]),
         n_games=raw.get("n_games", 1),
         board_spec=_parse_board_spec(raw.get("board_spec")),
+        env_kwargs=raw.get("env", {}),
     )
 
 
@@ -73,4 +76,5 @@ def load_config(path: str | Path) -> TournamentConfig:
         initial_rating=raw.get("initial_rating", 1000.0),
         seed=raw.get("seed"),
         board_spec=_parse_board_spec(raw.get("board_spec")),
+        env_kwargs=raw.get("env", {}),
     )

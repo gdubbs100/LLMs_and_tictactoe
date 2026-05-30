@@ -6,7 +6,10 @@
       "Bash(xargs ls *)",
       "Bash(python -c \"import ollama; help\\(ollama.chat\\)\")",
       "Bash(python3 -c \"import ollama; help\\(ollama.chat\\)\")",
-      "Bash(python -c \"import ollama; import inspect; print\\(inspect.getsource\\(ollama.chat\\)\\)\")"
+      "Bash(python -c \"import ollama; import inspect; print\\(inspect.getsource\\(ollama.chat\\)\\)\")",
+      "Bash(python *)",
+      "Bash(echo exit: $? *)",
+      "Bash(git *)"
     ]
   }
 }
