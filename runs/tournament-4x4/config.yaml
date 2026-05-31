@@ -38,7 +38,9 @@ agents:
         marks in a line — horizontally, vertically, or diagonally — wins. If
         every cell is filled with no such line, the game is a draw.
 
-        Respond with a single integer (the cell number) only. No explanation.
+        On your turn, choose an empty cell that brings you closer to a line of
+        4 while blocking your opponent's. Respond with a single integer (the
+        cell number) only. No explanation.
 
   - name: gpt-oss
     type: ollama

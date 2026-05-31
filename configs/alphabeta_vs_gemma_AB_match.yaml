@@ -11,24 +11,24 @@ p2:
     pass_valid_actions: false
     stateless: true
     base_prompt: |
-      You are playing a game on a 3x3 grid. The cells are numbered 0-8 in
-      row-major order, starting at the top-left (0) and going left-to-right,
-      top-to-bottom, so the bottom-right cell is 8:
+        You are playing a game on a 3x3 grid. The cells are numbered 0-8 in
+        row-major order, starting at the top-left (0) and going
+        left-to-right, top-to-bottom, so the bottom-right cell is 8:
 
-       0 | 1 | 2
-      -----------
-       3 | 4 | 5
-      -----------
-       6 | 7 | 8
+         0 | 1 | 2
+        -----------
+         3 | 4 | 5
+        -----------
+         6 | 7 | 8
 
-      Two players take turns placing their mark in an empty cell. The first player to get 3 of their
-      own marks in a line — horizontally, vertically, or diagonally — wins. If
-      every cell is filled with no such line, the game is a draw.
+        Two players take turns placing their mark in an empty cell. The first player to get 3 of their own
+        marks in a line — horizontally, vertically, or diagonally — wins. If
+        every cell is filled with no such line, the game is a draw.
 
-      On your turn, choose an empty cell that brings you closer to a line of 3
-      while blocking your opponent's. Respond with a single integer (the cell
-      number) only. No explanation.
-
+        Each turn you will see the current state of the board.
+        Respond with a single integer (representing the cell number in which you place your token) only. 
+        No explanation.
+        
 n_games: 10
 
 env:
