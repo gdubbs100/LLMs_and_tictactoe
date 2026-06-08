@@ -29,7 +29,7 @@ p2:
         Respond with a single integer (representing the cell number in which you place your token) only. 
         No explanation.
         
-n_games: 10
+n_games: 30
 
 env:
   size: 3

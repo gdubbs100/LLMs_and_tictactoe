@@ -1,5 +1,5 @@
 name: tournament-3x3
-games_per_pair: 15
+games_per_pair: 10
 k_factor: 32.0
 initial_rating: 1000.0
 
@@ -36,9 +36,9 @@ agents:
         marks in a line — horizontally, vertically, or diagonally — wins. If
         every cell is filled with no such line, the game is a draw.
 
-        On your turn, choose an empty cell that brings you closer to a line of
-        3 while blocking your opponent's. Respond with a single integer (the
-        cell number) only. No explanation.
+        Each turn you will see the current state of the board.
+        Respond with a single integer (representing the cell number in which you place your token) only. 
+        No explanation.
 
   - name: gpt-oss
     type: ollama
@@ -48,3 +48,16 @@ agents:
       pass_valid_actions: false
       stateless: true
       base_prompt: *prompt_3x3
+
+  - name: qwen3-fallback
+    type: hf_fallback
+    kwargs:
+      max_retries: 2
+      primary:
+        model_name: Qwen/Qwen3-0.6B
+        enable_thinking: false
+        pass_valid_actions: false
+        stateless: true          # only send system prompt + current state (no chat history)
+        max_new_tokens: 512
+        base_prompt: *prompt_3x3
+

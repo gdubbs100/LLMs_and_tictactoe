@@ -33,9 +33,3 @@ n_games: 30
 
 env:
   size: 3
-
-board_spec:
-  pieces: ["X", "O"]
-  empty: "X/O"
-  h_boundary: "o"
-  v_boundary: "x"

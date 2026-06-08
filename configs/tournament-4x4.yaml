@@ -1,5 +1,5 @@
 name: tournament-4x4
-games_per_pair: 15
+games_per_pair: 10
 k_factor: 32.0
 initial_rating: 1000.0
 

@@ -1,5 +1,5 @@
 name: tournament-4x4
-games_per_pair: 15
+games_per_pair: 10
 k_factor: 32.0
 initial_rating: 1000.0
 
@@ -38,9 +38,7 @@ agents:
         marks in a line — horizontally, vertically, or diagonally — wins. If
         every cell is filled with no such line, the game is a draw.
 
-        On your turn, choose an empty cell that brings you closer to a line of
-        4 while blocking your opponent's. Respond with a single integer (the
-        cell number) only. No explanation.
+        Respond with a single integer (the cell number) only. No explanation.
 
   - name: gpt-oss
     type: ollama
