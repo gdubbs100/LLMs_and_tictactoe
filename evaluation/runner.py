@@ -25,8 +25,14 @@ def run_matches(
     verbose: bool = False,
     board_spec: BoardSpec | None = None,
     env_kwargs: dict | None = None,
+    out_path: str | Path | None = None,
+    start_index: int = 0,
 ) -> list[ResultSpec]:
-    """Play n_games between two agents. By default alternates who starts.
+    """Play games [start_index, n_games) between two agents. Alternates who starts.
+
+    If out_path is given, each finished game is appended to it immediately (only
+    after play_game returns, so failed/incomplete games are never written). This
+    function only appends — clearing the file for a fresh run is the caller's job.
 
     Retries each game once on Ollama 500 errors (after _GAME_RETRY_WAIT seconds).
     Raises OllamaUnavailableError if the retry also fails.
@@ -34,7 +40,7 @@ def run_matches(
     results: list[ResultSpec] = []
     name_a, fac_a = agent_a
     name_b, fac_b = agent_b
-    for i in range(n_games):
+    for i in range(start_index, n_games):
         swapped = alternate_starts and i % 2 == 1
 
         def _setup():
@@ -66,6 +72,8 @@ def run_matches(
                 raise
 
         results.append(result)
+        if out_path is not None:
+            append_result(result, out_path)
         outcome = "draw" if result.winner is None else f"{result.agent_names[result.winner]} wins"
         remaining = n_games - i - 1
         logger.info(
@@ -75,24 +83,55 @@ def run_matches(
     return results
 
 
+def _result_to_dict(r: ResultSpec) -> dict:
+    return {
+        "agent_names": list(r.agent_names) if r.agent_names else None,
+        "actions": r.actions,
+        "boards": [list(b) for b in r.boards],
+        "player": r.player,
+        "winner": r.winner,
+        "invalid": r.invalid,
+        "final_reward": r.final_reward,
+        "outcome": r.outcome,
+        "llm_interactions": {str(k): v for k, v in (r.llm_interactions or {}).items()},
+        "size": r.size,
+        "win_length": r.win_length,
+    }
+
+
+def result_from_dict(d: dict) -> ResultSpec:
+    """Rebuild a ResultSpec from a saved line. `observations` is not persisted
+    and is unused by downstream stats/plots, so it is left empty."""
+    return ResultSpec(
+        actions=d["actions"],
+        observations=[],
+        boards=[tuple(b) for b in d["boards"]],
+        player=d["player"],
+        agent_names=tuple(d["agent_names"]) if d.get("agent_names") else None,
+        winner=d["winner"],
+        invalid=d["invalid"],
+        final_reward=d["final_reward"],
+        outcome=d["outcome"],
+        llm_interactions=d.get("llm_interactions") or {},
+        size=d.get("size"),
+        win_length=d.get("win_length"),
+    )
+
+
+def append_result(result: ResultSpec, path: str | Path) -> None:
+    """Append one finished game as a JSON line."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as f:
+        f.write(json.dumps(_result_to_dict(result)) + "\n")
+
+
 def save_results(results: Iterable[ResultSpec], path: str | Path) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         for r in results:
-            f.write(json.dumps({
-                "agent_names": list(r.agent_names) if r.agent_names else None,
-                "actions": r.actions,
-                "boards": [list(b) for b in r.boards],
-                "player": r.player,
-                "winner": r.winner,
-                "invalid": r.invalid,
-                "final_reward": r.final_reward,
-                "outcome": r.outcome,
-                "llm_interactions": {str(k): v for k, v in (r.llm_interactions or {}).items()},
-                "size": r.size,
-                "win_length": r.win_length,
-            }) + "\n")
+            f.write(json.dumps(_result_to_dict(r)) + "\n")
 
 
 def load_results(path: str | Path) -> list[dict]:

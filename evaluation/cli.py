@@ -19,7 +19,7 @@ from evaluation.plots import (
     plot_pairwise_winrate,
     plot_token_usage,
 )
-from evaluation.runner import run_matches, save_results
+from evaluation.runner import load_results, result_from_dict, run_matches
 from evaluation.tournament import Tournament, save_tournament
 
 logger = logging.getLogger(__name__)
@@ -30,13 +30,28 @@ def cmd_match(args: argparse.Namespace) -> None:
     out.mkdir(parents=True, exist_ok=True)
     cfg = load_match_config(args.config)
     fac_a, fac_b = cfg.agent_factories()
+
+    games_path = out / "games.jsonl"
+    if args.resume and games_path.exists():
+        prior = [result_from_dict(d) for d in load_results(games_path)]
+        start = len(prior)
+        print(f"Resuming match from game {start + 1} ({start} already completed).")
+    else:
+        if games_path.exists():
+            games_path.unlink()
+        prior, start = [], 0
+
     try:
-        results = run_matches((cfg.p1.name, fac_a), (cfg.p2.name, fac_b), n_games=cfg.n_games, board_spec=cfg.board_spec, env_kwargs=cfg.env_kwargs)
+        new = run_matches(
+            (cfg.p1.name, fac_a), (cfg.p2.name, fac_b),
+            n_games=cfg.n_games, board_spec=cfg.board_spec, env_kwargs=cfg.env_kwargs,
+            out_path=games_path, start_index=start,
+        )
     except OllamaUnavailableError as e:
         logger.error("Match ended early — Ollama unavailable: %s", e)
-        print("Match ended early due to Ollama error. No results saved.")
+        print("Match ended early due to Ollama error. Completed games saved; rerun with --resume to continue.")
         return
-    save_results(results, out / "games.jsonl")
+    results = prior + new
     stats = score_results(results)
     plot_outcome_rates(stats, out / "outcome_rates.png")
     plot_optimality(stats, out / "optimality.png")
@@ -72,7 +87,7 @@ def cmd_tournament(args: argparse.Namespace) -> None:
         board_spec=cfg.board_spec,
         env_kwargs=cfg.env_kwargs,
     )
-    result = tourney.run()
+    result = tourney.run(games_path=out / "games.jsonl", resume=args.resume)
     save_tournament(result, out)
 
     plot_outcome_rates(result.agent_stats, out / "outcome_rates.png")
@@ -101,11 +116,13 @@ def main() -> None:
     m = sub.add_parser("match", help="run games between two agents")
     m.add_argument("--config", required=True, help="YAML config path")
     m.add_argument("--out", required=True)
+    m.add_argument("--resume", action="store_true", help="continue from completed games in --out")
     m.set_defaults(func=cmd_match)
 
     t = sub.add_parser("tournament", help="run a round-robin ELO tournament")
     t.add_argument("--config", required=True, help="YAML config path")
     t.add_argument("--out", required=True)
+    t.add_argument("--resume", action="store_true", help="continue from completed games in --out")
     t.set_defaults(func=cmd_tournament)
 
     d = sub.add_parser("dashboard", help="launch the replay dashboard")

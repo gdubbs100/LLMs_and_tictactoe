@@ -13,7 +13,7 @@ from agents.play import ResultSpec
 from environment.tictactoe_env import BoardSpec
 from evaluation.metrics import MatchStats, score_results
 from evaluation.registry import AgentFactory
-from evaluation.runner import run_matches, save_results
+from evaluation.runner import load_results, result_from_dict, run_matches
 
 logger = logging.getLogger(__name__)
 
@@ -49,23 +49,54 @@ class Tournament:
     board_spec: BoardSpec = field(default_factory=BoardSpec)
     env_kwargs: dict = field(default_factory=dict)
 
-    def run(self) -> TournamentResult:
+    def run(self, games_path: str | Path | None = None, resume: bool = False) -> TournamentResult:
         ratings = {name: self.initial_rating for name in self.agents}
         history: list[dict] = []
         all_games: list[ResultSpec] = []
-        pair_stats: list[dict] = []
         game_counter = 0
+        pair_done: dict[frozenset, int] = {}
 
         for name, r in ratings.items():
             history.append({"game_idx": 0, "name": name, "rating": r})
+
+        games_path = Path(games_path) if games_path is not None else None
+
+        def _apply_elo(r: ResultSpec) -> None:
+            """Update ratings/history/counter for one game (live or replayed)."""
+            nonlocal game_counter
+            name_a, name_b = r.agent_names
+            score_a = _outcome_score(r, 0)
+            score_b = 1.0 - score_a
+            exp_a = _expected(ratings[name_a], ratings[name_b])
+            exp_b = 1.0 - exp_a
+            ratings[name_a] += self.k_factor * (score_a - exp_a)
+            ratings[name_b] += self.k_factor * (score_b - exp_b)
+            game_counter += 1
+            history.append({"game_idx": game_counter, "name": name_a, "rating": ratings[name_a]})
+            history.append({"game_idx": game_counter, "name": name_b, "rating": ratings[name_b]})
+
+        if games_path is not None and games_path.exists():
+            if resume:
+                for d in load_results(games_path):
+                    r = result_from_dict(d)
+                    _apply_elo(r)
+                    all_games.append(r)
+                    key = frozenset(r.agent_names)
+                    pair_done[key] = pair_done.get(key, 0) + 1
+                logger.info("Resuming tournament: %d completed games loaded.", len(all_games))
+            else:
+                games_path.unlink()
 
         pairs = list(combinations(self.agents.keys(), 2))
         n_pairs = len(pairs)
         deferred: list[tuple[str, str]] = []
 
         def _process_pair(name_a: str, name_b: str, label: str) -> None:
-            nonlocal game_counter
-            logger.info("%s: %s vs %s", label, name_a, name_b)
+            start = pair_done.get(frozenset((name_a, name_b)), 0)
+            if start >= self.games_per_pair:
+                logger.info("%s: %s vs %s — already complete, skipping.", label, name_a, name_b)
+                return
+            logger.info("%s: %s vs %s (from game %d)", label, name_a, name_b, start + 1)
             results = run_matches(
                 (name_a, self.agents[name_a]),
                 (name_b, self.agents[name_b]),
@@ -74,24 +105,12 @@ class Tournament:
                 verbose=False,
                 board_spec=self.board_spec,
                 env_kwargs=self.env_kwargs,
+                out_path=games_path,
+                start_index=start,
             )
             for r in results:
-                idx_a = r.agent_names.index(name_a)
-                score_a = _outcome_score(r, idx_a)
-                score_b = 1.0 - score_a
-                exp_a = _expected(ratings[name_a], ratings[name_b])
-                exp_b = 1.0 - exp_a
-                ratings[name_a] += self.k_factor * (score_a - exp_a)
-                ratings[name_b] += self.k_factor * (score_b - exp_b)
-                game_counter += 1
-                history.append({"game_idx": game_counter, "name": name_a, "rating": ratings[name_a]})
-                history.append({"game_idx": game_counter, "name": name_b, "rating": ratings[name_b]})
+                _apply_elo(r)
             all_games.extend(results)
-            pair = score_results(results)
-            for name, s in pair.items():
-                row = s.to_dict()
-                row["opponent"] = name_b if name == name_a else name_a
-                pair_stats.append(row)
 
         for pair_idx, (name_a, name_b) in enumerate(pairs):
             try:
@@ -120,6 +139,18 @@ class Tournament:
                     )
             logger.info("Tournament ending — %d pair(s) may have been skipped.", len(deferred))
 
+        pair_groups: dict[frozenset, list[ResultSpec]] = {}
+        for r in all_games:
+            pair_groups.setdefault(frozenset(r.agent_names), []).append(r)
+        pair_stats: list[dict] = []
+        for group in pair_groups.values():
+            stats = score_results(group)
+            names = list(stats.keys())
+            for name, s in stats.items():
+                row = s.to_dict()
+                row["opponent"] = next(n for n in names if n != name) if len(names) > 1 else name
+                pair_stats.append(row)
+
         agent_stats = score_results(all_games)
         return TournamentResult(
             games=all_games,
@@ -134,8 +165,7 @@ def save_tournament(result: TournamentResult, out_dir: str | Path) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    save_results(result.games, out_dir / "games.jsonl")
-
+    # games.jsonl is written incrementally during the run; only aggregates here.
     pd.DataFrame(
         [{"name": n, "rating": r} for n, r in result.final_ratings.items()]
     ).sort_values("rating", ascending=False).to_csv(out_dir / "ratings.csv", index=False)
