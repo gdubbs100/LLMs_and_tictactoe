@@ -1,0 +1,29 @@
+p1:
+  name: alphabeta
+  type: alphabeta
+
+p2:
+  name: gemma4-ollama
+  type: ollama
+  kwargs:
+    model_name: gemma4:31b-cloud
+    enable_thinking: true
+    pass_valid_actions: false
+    stateless: true
+    base_prompt: |
+      You are playing a game
+      Actions are integers in [0, 8] indexing cells in row-major order:
+
+       0 | 1 | 2
+      -----------
+       3 | 4 | 5
+      -----------
+       6 | 7 | 8
+
+      View the board state and select the best available action to win.
+      Think carefully, then respond with a single integer only. No explanation.
+
+n_games: 5
+
+board_spec:
+  pieces: ["E", "Z"]

@@ -1,0 +1,35 @@
+name: example
+games_per_pair: 5
+k_factor: 32
+initial_rating: 1000
+seed: 42
+
+agents:
+  - name: alphabeta
+    type: alphabeta
+  - name: random_a
+    type: random
+    kwargs:
+      seed: 1
+  - name: random_b
+    type: random
+    kwargs:
+      seed: 2
+  - name: qwen3-0.6b
+    type: hf
+    kwargs:
+      model_name: Qwen/Qwen3-0.6B
+      enable_thinking: false
+      max_new_tokens: 16
+      base_prompt: |
+        You are playing Tic-Tac-Toe.
+        Actions are integers in [0, 8] indexing cells in row-major order:
+
+         0 | 1 | 2
+        -----------
+         3 | 4 | 5
+        -----------
+         6 | 7 | 8
+
+        View the board state and select the best available action to win.
+        Respond with a single integer only. No explanation.

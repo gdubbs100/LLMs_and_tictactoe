@@ -1,0 +1,17 @@
+p1:
+  name: random
+  type: random
+  kwargs:
+    seed: 1
+
+p2:
+  name: alphabeta
+  type: alphabeta
+
+n_games: 5
+
+board_spec:
+  pieces: ["@", "O"]
+  empty: "."
+  h_boundary: "="
+  v_boundary: "|"
