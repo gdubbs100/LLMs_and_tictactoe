@@ -1,0 +1,41 @@
+p1:
+  name: alphabeta
+  type: alphabeta
+
+p2:
+  name: gemma4
+  type: ollama
+  kwargs:
+    model_name: gemma4:31b-cloud
+    enable_thinking: true
+    pass_valid_actions: false
+    stateless: true
+    base_prompt: |
+        You are playing a game on a 3x3 grid. The cells are numbered 0-8 in
+        row-major order, starting at the top-left (0) and going
+        left-to-right, top-to-bottom, so the bottom-right cell is 8:
+
+         0  X  1  X  2
+        XXXXXXXXXXXXXXX
+         3  X  4  X  5
+        XXXXXXXXXXXXXXX
+         6  X  7  X  8
+
+        Two players take turns placing their mark in an empty cell. The first player to get 3 of their own
+        marks in a line — horizontally, vertically, or diagonally — wins. If
+        every cell is filled with no such line, the game is a draw.
+
+        Each turn you will see the current state of the board.
+        Respond with a single integer (representing the cell number in which you place your token) only. 
+        No explanation.
+
+n_games: 30
+
+env:
+  size: 3
+
+board_spec:
+  pieces: ["x", "o"]
+  empty: "O"
+  h_boundary: "X"
+  v_boundary: "X"
